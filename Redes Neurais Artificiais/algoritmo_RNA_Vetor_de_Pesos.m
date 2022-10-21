@@ -151,7 +151,7 @@ for testes = 1:numero_maximo_testes
     valor_real_desnormalizado = dados_de_saida_validacao*(max(dados(:,4))-min(dados(:,4))) + min(dados(:,4));
     Y2_desnormalizado = Y2*(max(dados(:,4))-min(dados(:,4))) + min(dados(:,4));
     % parâmetros de analise
-    ERM = 100*sum(abs(valor_real_desnormalizado-Y2_desnormalizado)./valor_real_desnormalizado)/quantidade_de_dados_validacao;
+    ERM = 100*sum((valor_real_desnormalizado-Y2_desnormalizado)./valor_real_desnormalizado)/quantidade_de_dados_validacao;
     fprintf('ERM: %1.2f', ERM)
     disp('%')
 
