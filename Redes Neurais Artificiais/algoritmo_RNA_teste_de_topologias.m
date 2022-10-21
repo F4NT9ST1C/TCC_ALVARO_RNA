@@ -7,44 +7,44 @@ populacao = dados(:,1);
 PIB = dados(:,2); %mil
 clientes = dados(:,3);
 consumo = dados(:,4); %kWh
-%fator_ind = dados(:,6); %Fator que indica presença de indústria (1) ou ausência (0)
+%fator_ind = dados(:,6); %Fator que indica presenÃ§a de indÃºstria (1) ou ausÃªncia (0)
 dados = [populacao PIB clientes consumo];
 %dados = [populacao PIB clientes fator_ind consumo];
 fator_de_correlacao_pearson = corrcoef(dados);
 
-%Normalização dos dados
+%NormalizaÃ§Ã£o dos dados
 dados_normalizados = normalize(dados, 'range', [0 1]);
 percentual_dados_validacao = 25; % em "%"
 
-%Inserção do limiar -1
+%InserÃ§Ã£o do limiar -1
 dados_normalizados = [-ones(length(dados_normalizados),1) dados_normalizados];
 
-%Parâmetros de avaliação e controle
+%ParÃ¢metros de avaliaÃ§Ã£o e controle
 contador = 0;
 tempo_segundos = 0;
 
 %% Treinamento
-%Método de kolmogorov: N = 2*(número de entradas)+1
+%MÃ©todo de kolmogorov: N = 2*(nÃºmero de entradas)+1
 numero_minimo_neuronios = 3;
 numero_maximo_neuronios = 7;
 numero_maximo_testes = 1000;
 passo = 1;
 
 for testes = 1:numero_maximo_testes
-    %Separação dos dados de treinamento e validação
+    %SeparaÃ§Ã£o dos dados de treinamento e validaÃ§Ã£o
     quantidade_de_dados_validacao = round(percentual_dados_validacao*length(dados_normalizados)/100); %D
     selecao_de_dados = randi([1 length(dados_normalizados)],1,quantidade_de_dados_validacao);
     dados_de_validacao_normalizados = dados_normalizados(selecao_de_dados,:);
     dados_de_treinamento_normalizados = dados_normalizados;
     dados_de_treinamento_normalizados(selecao_de_dados,:) = [];
 
-    %Determinação das entradas e saídas (treinamento)
+    %DeterminaÃ§Ã£o das entradas e saÃ­das (treinamento)
     dados_de_entrada = dados_de_treinamento_normalizados(:,1:size(dados_de_treinamento_normalizados,2)-1); %Matriz de entradas (E)
-    dados_de_saida   = dados_de_treinamento_normalizados(:,size(dados_de_treinamento_normalizados,2)); %Vetor de saídas desejadas para cada linha dos dados de entrada
+    dados_de_saida   = dados_de_treinamento_normalizados(:,size(dados_de_treinamento_normalizados,2)); %Vetor de saÃ­das desejadas para cada linha dos dados de entrada
     quantidade_de_entradas = size(dados_de_entrada,2);
     for quantidade_de_neuronios_camada_oculta = numero_minimo_neuronios:passo:numero_maximo_neuronios
         tic
-        %Pré-alocação das matrizes utilizadas
+        %PrÃ©-alocaÃ§Ã£o das matrizes utilizadas
         if quantidade_de_neuronios_camada_oculta == numero_minimo_neuronios && testes == 1
             pre_alocacao = zeros(length(numero_minimo_neuronios:passo:numero_maximo_neuronios),numero_maximo_testes);
             evolucao_desvio_padrao = pre_alocacao;
@@ -55,7 +55,7 @@ for testes = 1:numero_maximo_testes
         end
         
         % Inicializando a matriz peso w1(ExN) e vetor coluna w2((N+1)x1) aleatoriamente
-        % O vetor de pesos inicial é elevado à quinta só para garantir que seus elementos sejam pequenos
+        % O vetor de pesos inicial Ã© elevado Ã  quinta sÃ³ para garantir que seus elementos sejam pequenos
         vetor_pesos_entrada          = rand(quantidade_de_entradas,quantidade_de_neuronios_camada_oculta).^5; %w1
         vetor_pesos_entrada_inicial  = vetor_pesos_entrada;
         vetor_pesos_entrada_atual    = vetor_pesos_entrada;
@@ -65,22 +65,22 @@ for testes = 1:numero_maximo_testes
         vetor_pesos_saida_atual      = vetor_pesos_saida;
         vetor_pesos_saida_anterior   = vetor_pesos_saida;
         
-        %Taxa de aprendizagem (ta) e precisão
+        %Taxa de aprendizagem (ta) e precisÃ£o
         ta        = 0.1;
         precisao  = 10^-6;
 
-        %Numero máximo de épocas e época inicial
+        %Numero mÃ¡ximo de Ã©pocas e Ã©poca inicial
         max_ep = 2000;
         ep     = 2;
 
-        %Parâmetros da função sigmóide
+        %ParÃ¢metros da funÃ§Ã£o sigmÃ³ide
         alfa = 1;
         beta = 1;
         
         %Termo momentum
         gama = 0.80;
 
-        %Erro Quadrático Médio inicial
+        %Erro QuadrÃ¡tico MÃ©dio inicial
         EQM = 0;
         clear eqm
         eqm(:,1) = .2;
@@ -89,7 +89,7 @@ for testes = 1:numero_maximo_testes
         % pelo menos duas amostras para que se pudesse fazer o condicional 
         % do WHILE.
   
-        % Laço principal
+        % LaÃ§o principal
         while (abs(eqm(:,(ep)) - eqm(:,(ep-1))) > precisao && ep < max_ep)
             for k = 1:size(dados_de_treinamento_normalizados,1)
         % Fase Foward        
@@ -98,12 +98,12 @@ for testes = 1:numero_maximo_testes
         %       1x1         1x(N+1)      (N+1)x1       1x1                            1x1
                 I2 = vetor_pesos_saida'  *  Y1;         Y2 = alfa.*(1./(1 + exp(-beta.*I2)));
 
-        % Início da retropropagação do erro (Fase backward)      
-        % Derivada da função sigmóide: g'(z)=g(z)*[1-g(z)]
+        % InÃ­cio da retropropagaÃ§Ã£o do erro (Fase backward)      
+        % Derivada da funÃ§Ã£o sigmÃ³ide: g'(z)=g(z)*[1-g(z)]
         %       Nx1                                Nx1                            Nx1
-                a = (alfa*beta*(1./(1 + exp(-beta.*I1)))).*(1-(1./(1 + exp(-beta.*I1))));   %Derivada da função sigmóide em I1
+                a = (alfa*beta*(1./(1 + exp(-beta.*I1)))).*(1-(1./(1 + exp(-beta.*I1))));   %Derivada da funÃ§Ã£o sigmÃ³ide em I1
         %       Nx1                                Nx1                            Nx1
-                b = (alfa*beta*(1./(1 + exp(-beta.*I2)))).*(1-(1./(1 + exp(-beta.*I2))));   %Derivada da função sigmóide em I2
+                b = (alfa*beta*(1./(1 + exp(-beta.*I2)))).*(1-(1./(1 + exp(-beta.*I2))));   %Derivada da funÃ§Ã£o sigmÃ³ide em I2
         %       1x1            1x1               1x1 
                 delta2   = b*((dados_de_saida(k)-Y2));
         %       (N+1)x1                    (N+1)x1           1x1  (N+1)x1
@@ -126,9 +126,9 @@ for testes = 1:numero_maximo_testes
                 EQM = 0;
         end
 
-        %% Validação
+        %% ValidaÃ§Ã£o
         disp('Treinamento finalizado!')
-        fprintf(1,'Número de épocas: %1.0f \n',ep)
+        fprintf(1,'NÃºmero de Ã©pocas: %1.0f \n',ep)
         dados_de_entrada_validacao = dados_de_validacao_normalizados(:,1:quantidade_de_entradas);
         dados_de_saida_validacao = dados_de_validacao_normalizados(:,quantidade_de_entradas+1);
 
@@ -145,10 +145,10 @@ for testes = 1:numero_maximo_testes
     %   Dx1                            Dx1
         Y2 = alfa.*(1./(1 + exp(-beta.*I2)));
         
-        %Desnormalização dos dados
+        %DesnormalizaÃ§Ã£o dos dados
         valor_real_desnormalizado = dados_de_saida_validacao*(max(dados(:,4))-min(dados(:,4))) + min(dados(:,4));
         Y2_desnormalizado = Y2*(max(dados(:,4))-min(dados(:,4))) + min(dados(:,4));
-        ERM = 100*sum(abs(valor_real_desnormalizado-Y2_desnormalizado)./valor_real_desnormalizado)/quantidade_de_dados_validacao;
+        ERM = 100*sum((valor_real_desnormalizado-Y2_desnormalizado)./valor_real_desnormalizado)/quantidade_de_dados_validacao;
         fprintf('ERM: %1.2f', ERM)
         disp('%')
         
@@ -157,12 +157,12 @@ for testes = 1:numero_maximo_testes
         
         vetor_ERM = 100*(valor_real_desnormalizado-Y2_desnormalizado)./valor_real_desnormalizado;
         desvio_padrao = sqrt(sum((vetor_ERM-ERM).^2)/quantidade_de_dados_validacao);
-        fprintf('Desvio padrão: %1.2f', desvio_padrao)
+        fprintf('Desvio padrÃ£o: %1.2f', desvio_padrao)
         disp('%')
         
         fator_de_correlacao_pearson_validacao = corrcoef([valor_real_desnormalizado Y2_desnormalizado]);
-        fprintf('Fator de correlação: %1.2f \n', fator_de_correlacao_pearson_validacao(1,2))
-        fprintf('Quantidade de neurônios: %1.0f \n', quantidade_de_neuronios_camada_oculta)
+        fprintf('Fator de correlaÃ§Ã£o: %1.2f \n', fator_de_correlacao_pearson_validacao(1,2))
+        fprintf('Quantidade de neurÃ´nios: %1.0f \n', quantidade_de_neuronios_camada_oculta)
      
         vetor_neuronios(quantidade_de_neuronios_camada_oculta-(numero_minimo_neuronios-1),testes) = quantidade_de_neuronios_camada_oculta;
         evolucao_desvio_padrao(quantidade_de_neuronios_camada_oculta-(numero_minimo_neuronios-1),testes) = desvio_padrao;
@@ -177,8 +177,8 @@ for testes = 1:numero_maximo_testes
     end
 end
 
-%Remoção das linhas de zero devido não utilizar procura sequencial da
-%quantidade de neurônios na camada escondida
+%RemoÃ§Ã£o das linhas de zero devido nÃ£o utilizar procura sequencial da
+%quantidade de neurÃ´nios na camada escondida
 linhas_a_remover = find(sum(vetor_neuronios,2) == 0);
 vetor_neuronios(linhas_a_remover,:) = [];
 linhas_a_remover = find(sum(evolucao_desvio_padrao,2) == 0);
@@ -192,25 +192,25 @@ evolucao_fator_correlacao(linhas_a_remover,:) = [];
 linhas_a_remover = find(sum(vetor_epocas,2) == 0);
 vetor_epocas(linhas_a_remover,:) = [];
 
-%% Definição da topologia vencedora
-%1º critério: 
-%Desempate no 1º critério: menor quantidade de neurônios
-%2º critério: 
-%Desempate no 2º critério: menor quantidade de neurônios
+%% DefiniÃ§Ã£o da topologia vencedora
+%1Âº critÃ©rio: 
+%Desempate no 1Âº critÃ©rio: menor quantidade de neurÃ´nios
+%2Âº critÃ©rio: 
+%Desempate no 2Âº critÃ©rio: menor quantidade de neurÃ´nios
 
-%Ordenação ascendente dos resultados para cada topologia
-%evolucao_ERM = sort(abs(evolucao_ERM),2); %O "2" significa ordenação apenas das linhas
-%evolucao_EQM = sort(abs(evolucao_EQM),2); %O "2" significa ordenação apenas das linhas
-%evolucao_desvio_padrao = sort(abs(evolucao_desvio_padrao),2); %O "2" significa ordenação apenas das linhas
-%evolucao_fator_correlacao = sort(abs(evolucao_fator_correlacao),2); %O "2" significa ordenação apenas das linhas
+%OrdenaÃ§Ã£o ascendente dos resultados para cada topologia
+%evolucao_ERM = sort(abs(evolucao_ERM),2); %O "2" significa ordenaÃ§Ã£o apenas das linhas
+%evolucao_EQM = sort(abs(evolucao_EQM),2); %O "2" significa ordenaÃ§Ã£o apenas das linhas
+%evolucao_desvio_padrao = sort(abs(evolucao_desvio_padrao),2); %O "2" significa ordenaÃ§Ã£o apenas das linhas
+%evolucao_fator_correlacao = sort(abs(evolucao_fator_correlacao),2); %O "2" significa ordenaÃ§Ã£o apenas das linhas
 
-%Colocando os dados em modo absoluto (módulo)
+%Colocando os dados em modo absoluto (mÃ³dulo)
 evolucao_ERM = abs(evolucao_ERM);
 evolucao_EQM = abs(evolucao_EQM);
 evolucao_desvio_padrao = abs(evolucao_desvio_padrao);
 evolucao_fator_correlacao = abs(evolucao_fator_correlacao);
 
-%Critério do somatório total
+%CritÃ©rio do somatÃ³rio total
 soma_ERM_topologia = sum(evolucao_ERM,2); %soma o ERM para cada topologia (linha da matriz)
 [menor_valor,~] = min(soma_ERM_topologia); %procura o menor valor de ERM
 [linha,~] = find(soma_ERM_topologia == menor_valor); %Identifica a linha (topologia) com menor valor
@@ -219,8 +219,8 @@ if passo == 1
 else
     vencedora = passo*linha;
 end
-topologia_vencedora_ERM = vencedora; %Definição da topologia vencedora
-media_ERM_topologia = mean(evolucao_ERM,2); %média do ERM para cada topologia (linha da matriz)
+topologia_vencedora_ERM = vencedora; %DefiniÃ§Ã£o da topologia vencedora
+media_ERM_topologia = mean(evolucao_ERM,2); %mÃ©dia do ERM para cada topologia (linha da matriz)
 
 soma_EQM_topologia = sum(evolucao_EQM,2);
 [menor_valor,~] = min(soma_EQM_topologia);
@@ -255,7 +255,7 @@ end
 topologia_vencedora_fator_correlacao = vencedora;
 media_fator_correlacao_topologia = mean(evolucao_fator_correlacao,2);
 
-%Critério do melhor valor para cada teste
+%CritÃ©rio do melhor valor para cada teste
 matriz_decisao = zeros(size(evolucao_EQM,1),size(evolucao_EQM,2));
 for i = 1:length(evolucao_EQM)
     [menor_valor,~] = min(evolucao_EQM(:,i));
@@ -265,64 +265,64 @@ end
 somatorio_competicao = sum(matriz_decisao,2);
 topologia_vencedora_EQM_competicao = min(find(somatorio_competicao == max(somatorio_competicao)) + (numero_minimo_neuronios-1));
 %%
-% % %% Gráficos
+% % %% GrÃ¡ficos
 % figure(1)
-% subplot(2,2,1),plot(vetor_neuronios,evolucao_ERM,'*'),grid,xlabel('Quantidade de neurônios'),ylabel('ERM (%)')
+% subplot(2,2,1),plot(vetor_neuronios,evolucao_ERM,'*'),grid,xlabel('Quantidade de neurÃ´nios'),ylabel('ERM (%)')
 % hold on, plot(numero_minimo_neuronios:numero_maximo_neuronios,media_ERM_topologia,'s','LineWidth',2,'MarkerSize',10,'MarkerEdgeColor','y','MarkerFaceColor','r')
-% subplot(2,2,2),plot(vetor_neuronios,evolucao_EQM,'*'),grid,xlabel('Quantidade de neurônios'),ylabel('EQM')
+% subplot(2,2,2),plot(vetor_neuronios,evolucao_EQM,'*'),grid,xlabel('Quantidade de neurÃ´nios'),ylabel('EQM')
 % hold on, plot(numero_minimo_neuronios:numero_maximo_neuronios,media_EQM_topologia,'s','LineWidth',2,'MarkerSize',10,'MarkerEdgeColor','y','MarkerFaceColor','r')
-% subplot(2,2,3),plot(vetor_neuronios,evolucao_fator_correlacao,'*'),grid,xlabel('Quantidade de neurônios'),ylabel('Fator de correlação')
+% subplot(2,2,3),plot(vetor_neuronios,evolucao_fator_correlacao,'*'),grid,xlabel('Quantidade de neurÃ´nios'),ylabel('Fator de correlaÃ§Ã£o')
 % hold on, plot(numero_minimo_neuronios:numero_maximo_neuronios,media_fator_correlacao_topologia,'s','LineWidth',2,'MarkerSize',10,'MarkerEdgeColor','y','MarkerFaceColor','r')
-% subplot(2,2,4),plot(vetor_neuronios,evolucao_desvio_padrao,'*'),grid,xlabel('Quantidade de neurônios'),ylabel('Desvio padrão (%)')
+% subplot(2,2,4),plot(vetor_neuronios,evolucao_desvio_padrao,'*'),grid,xlabel('Quantidade de neurÃ´nios'),ylabel('Desvio padrÃ£o (%)')
 % hold on, plot(numero_minimo_neuronios:numero_maximo_neuronios,media_desvio_padrao_topologia,'s','LineWidth',2,'MarkerSize',10,'MarkerEdgeColor','y','MarkerFaceColor','r')
 %%
 % figure(2)
-% subplot(4,1,1),hist(evolucao_ERM'),grid,xlabel('Erro relativo médio (%)'),ylabel('Quantidade de amostras'),colorbar
+% subplot(4,1,1),hist(evolucao_ERM'),grid,xlabel('Erro relativo mÃ©dio (%)'),ylabel('Quantidade de amostras'),colorbar
 % subplot(4,1,2),hist(evolucao_EQM'),grid,xlabel('EQM'),ylabel('Quantidade de amostras'),colorbar
-% subplot(4,1,3),hist(evolucao_fator_correlacao'),grid,xlabel('Fator de correlação (%)'),ylabel('Quantidade de amostras'),colorbar
-% subplot(4,1,4),hist(evolucao_desvio_padrao'),grid,xlabel('Desvio padrão (%)'),ylabel('Quantidade de amostras'),colorbar
+% subplot(4,1,3),hist(evolucao_fator_correlacao'),grid,xlabel('Fator de correlaÃ§Ã£o (%)'),ylabel('Quantidade de amostras'),colorbar
+% subplot(4,1,4),hist(evolucao_desvio_padrao'),grid,xlabel('Desvio padrÃ£o (%)'),ylabel('Quantidade de amostras'),colorbar
 % 
 % % figure(3)
-% % subplot(1,4,1),boxplot(evolucao_ERM',(numero_minimo_neuronios:numero_maximo_neuronios)'),grid,xlabel('Quantidade de neurônios'),ylabel('Erro relativo médio (%)')
-% % subplot(1,4,2),boxplot(evolucao_EQM',(numero_minimo_neuronios:numero_maximo_neuronios)'),grid,xlabel('Quantidade de neurônios'),ylabel('EQM')
-% % subplot(1,4,3),boxplot(evolucao_fator_correlacao',(numero_minimo_neuronios:numero_maximo_neuronios)'),grid,xlabel('Quantidade de neurônios'),ylabel('Fator de correlação (%)')
-% % subplot(1,4,4),boxplot(evolucao_desvio_padrao',(numero_minimo_neuronios:numero_maximo_neuronios)'),grid,xlabel('Quantidade de neurônios'),ylabel('Desvio padrão (%)')
+% % subplot(1,4,1),boxplot(evolucao_ERM',(numero_minimo_neuronios:numero_maximo_neuronios)'),grid,xlabel('Quantidade de neurÃ´nios'),ylabel('Erro relativo mÃ©dio (%)')
+% % subplot(1,4,2),boxplot(evolucao_EQM',(numero_minimo_neuronios:numero_maximo_neuronios)'),grid,xlabel('Quantidade de neurÃ´nios'),ylabel('EQM')
+% % subplot(1,4,3),boxplot(evolucao_fator_correlacao',(numero_minimo_neuronios:numero_maximo_neuronios)'),grid,xlabel('Quantidade de neurÃ´nios'),ylabel('Fator de correlaÃ§Ã£o (%)')
+% % subplot(1,4,4),boxplot(evolucao_desvio_padrao',(numero_minimo_neuronios:numero_maximo_neuronios)'),grid,xlabel('Quantidade de neurÃ´nios'),ylabel('Desvio padrÃ£o (%)')
 % 
 % figure(4)
-% subplot(2,1,1),plot(valor_real_desnormalizado/1E6,'r-o'), hold on, grid, plot(Y2_desnormalizado/1E6,'b-*'),legend('Saída desejada','Saída real'),xlabel('Amostras'),ylabel('Consumo anual (GWh)')
-% subplot(2,1,2),plot(3:ep,eqm(3:length(eqm))),grid,xlabel('Épocas'),ylabel('Erro Quadrático médio') %remoção das duas primeiras épocas
-% legenda = ['Desejado(GWh)    Saída Real(GWh)      Erro(%)'];
+% subplot(2,1,1),plot(valor_real_desnormalizado/1E6,'r-o'), hold on, grid, plot(Y2_desnormalizado/1E6,'b-*'),legend('SaÃ­da desejada','SaÃ­da real'),xlabel('Amostras'),ylabel('Consumo anual (GWh)')
+% subplot(2,1,2),plot(3:ep,eqm(3:length(eqm))),grid,xlabel('Ã‰pocas'),ylabel('Erro QuadrÃ¡tico mÃ©dio') %remoÃ§Ã£o das duas primeiras Ã©pocas
+% legenda = ['Desejado(GWh)    SaÃ­da Real(GWh)      Erro(%)'];
 % analise = [valor_real_desnormalizado/1E6 Y2_desnormalizado/1E6 100*(valor_real_desnormalizado/1E6-Y2_desnormalizado/1E6)./valor_real_desnormalizado/1E6];
 %%
 quantidade_neuronios = size(soma_EQM_topologia,1);
 figure(1)
-subplot(1,2,1),plot(vetor_neuronios,evolucao_desvio_padrao,'ob','LineWidth',1),hold on,grid,xlabel('Quantidade de neurônios'),ylabel('Desvio padrão (%)')
-subplot(1,2,2),plot(vetor_neuronios(:,1),media_desvio_padrao_topologia,'*r','LineWidth',7),hold on,grid,plot(topologia_vencedora_desvio_padrao,min(media_desvio_padrao_topologia),'*k','LineWidth',8),grid,xlabel('Quantidade de neurônios'),ylabel('Média do Desvio padrão (%) para cada topologia');
+subplot(1,2,1),plot(vetor_neuronios,evolucao_desvio_padrao,'ob','LineWidth',1),hold on,grid,xlabel('Quantidade de neurÃ´nios'),ylabel('Desvio padrÃ£o (%)')
+subplot(1,2,2),plot(vetor_neuronios(:,1),media_desvio_padrao_topologia,'*r','LineWidth',7),hold on,grid,plot(topologia_vencedora_desvio_padrao,min(media_desvio_padrao_topologia),'*k','LineWidth',8),grid,xlabel('Quantidade de neurÃ´nios'),ylabel('MÃ©dia do Desvio padrÃ£o (%) para cada topologia');
 figure(2)
-subplot(1,2,1),plot(vetor_neuronios,evolucao_fator_correlacao,'ob','LineWidth',1),hold on,grid,xlabel('Quantidade de neurônios'),ylabel('Coeficiente de correlação de Pearson');
-subplot(1,2,2),plot(vetor_neuronios(:,1),media_fator_correlacao_topologia,'*r','LineWidth',7),hold on,grid,plot(topologia_vencedora_fator_correlacao,max(media_fator_correlacao_topologia),'*k','LineWidth',8),grid,xlabel('Quantidade de neurônios'),ylabel('Média do coeficiente de correlação de Pearson para cada topologia');
+subplot(1,2,1),plot(vetor_neuronios,evolucao_fator_correlacao,'ob','LineWidth',1),hold on,grid,xlabel('Quantidade de neurÃ´nios'),ylabel('Coeficiente de correlaÃ§Ã£o de Pearson');
+subplot(1,2,2),plot(vetor_neuronios(:,1),media_fator_correlacao_topologia,'*r','LineWidth',7),hold on,grid,plot(topologia_vencedora_fator_correlacao,max(media_fator_correlacao_topologia),'*k','LineWidth',8),grid,xlabel('Quantidade de neurÃ´nios'),ylabel('MÃ©dia do coeficiente de correlaÃ§Ã£o de Pearson para cada topologia');
 figure(3)
-subplot(1,2,1),plot(vetor_neuronios,evolucao_ERM,'ob','LineWidth',1),hold on,grid,xlabel('Quantidade de neurônios'),ylabel('ERM (%)')
-subplot(1,2,2),plot(vetor_neuronios(:,1),media_ERM_topologia,'*r','LineWidth',7),hold on,grid,plot(topologia_vencedora_ERM,min(media_ERM_topologia),'*k','LineWidth',8),grid,xlabel('Quantidade de neurônios'),ylabel('Média do ERM (%) para cada topologia')
+subplot(1,2,1),plot(vetor_neuronios,evolucao_ERM,'ob','LineWidth',1),hold on,grid,xlabel('Quantidade de neurÃ´nios'),ylabel('ERM (%)')
+subplot(1,2,2),plot(vetor_neuronios(:,1),media_ERM_topologia,'*r','LineWidth',7),hold on,grid,plot(topologia_vencedora_ERM,min(media_ERM_topologia),'*k','LineWidth',8),grid,xlabel('Quantidade de neurÃ´nios'),ylabel('MÃ©dia do ERM (%) para cada topologia')
 figure(4)
-subplot(1,2,1),plot(vetor_neuronios,evolucao_EQM,'ob','LineWidth',1),hold on,grid,xlabel('Quantidade de neurônios'),ylabel('Erro quadratico médio ')
-subplot(1,2,2),plot(vetor_neuronios(:,1),media_EQM_topologia,'*r','LineWidth',7),hold on,grid,plot(topologia_vencedora_EQM_somatorio,min(media_EQM_topologia),'*k','LineWidth',8),grid,xlabel('Quantidade de neurônios'),ylabel('Média do EQM para cada topologia')
+subplot(1,2,1),plot(vetor_neuronios,evolucao_EQM,'ob','LineWidth',1),hold on,grid,xlabel('Quantidade de neurÃ´nios'),ylabel('Erro quadratico mÃ©dio ')
+subplot(1,2,2),plot(vetor_neuronios(:,1),media_EQM_topologia,'*r','LineWidth',7),hold on,grid,plot(topologia_vencedora_EQM_somatorio,min(media_EQM_topologia),'*k','LineWidth',8),grid,xlabel('Quantidade de neurÃ´nios'),ylabel('MÃ©dia do EQM para cada topologia')
 
 figure(5)
-subplot(1,3,1),plot(vetor_neuronios,evolucao_desvio_padrao,'*'),grid,xlabel('Quantidade de neurônios'),ylabel('Desvio padrão (%)')
-subplot(1,3,2),plot(vetor_neuronios,evolucao_ERM,'*'),grid,xlabel('Quantidade de neurônios'),ylabel('ERM (%)')
-subplot(1,3,3),plot(vetor_neuronios,evolucao_fator_correlacao,'*'),grid,xlabel('Quantidade de neurônios'),ylabel('Fator de correlação')
+subplot(1,3,1),plot(vetor_neuronios,evolucao_desvio_padrao,'*'),grid,xlabel('Quantidade de neurÃ´nios'),ylabel('Desvio padrÃ£o (%)')
+subplot(1,3,2),plot(vetor_neuronios,evolucao_ERM,'*'),grid,xlabel('Quantidade de neurÃ´nios'),ylabel('ERM (%)')
+subplot(1,3,3),plot(vetor_neuronios,evolucao_fator_correlacao,'*'),grid,xlabel('Quantidade de neurÃ´nios'),ylabel('Fator de correlaÃ§Ã£o')
 
 figure(6)
-subplot(3,1,1),hist(evolucao_desvio_padrao'),grid,xlabel('Desvio padrão (%)'),ylabel('Quantidade de amostras'),colorbar
-subplot(3,1,2),hist(evolucao_ERM'),grid,xlabel('Erro relativo médio (%)'),ylabel('Quantidade de amostras'),colorbar
-subplot(3,1,3),hist(evolucao_fator_correlacao'),grid,xlabel('Fator de correlação (%)'),ylabel('Quantidade de amostras'),colorbar
+subplot(3,1,1),hist(evolucao_desvio_padrao'),grid,xlabel('Desvio padrÃ£o (%)'),ylabel('Quantidade de amostras'),colorbar
+subplot(3,1,2),hist(evolucao_ERM'),grid,xlabel('Erro relativo mÃ©dio (%)'),ylabel('Quantidade de amostras'),colorbar
+subplot(3,1,3),hist(evolucao_fator_correlacao'),grid,xlabel('Fator de correlaÃ§Ã£o (%)'),ylabel('Quantidade de amostras'),colorbar
 
 figure(7)
-subplot(1,2,1),plot(vetor_neuronios,vetor_epocas,'ob','LineWidth',1),hold on,grid,xlabel('Quantidade de neurônios'),ylabel('Quantidade de épocas por treinamento.')
-subplot(1,2,2),plot(vetor_neuronios(:,1),mean(vetor_epocas,2),'*r','LineWidth',7),hold on,grid,xlabel('Quantidade de neurônios'),ylabel('Média da quantidade de épocas por treinamento.')
+subplot(1,2,1),plot(vetor_neuronios,vetor_epocas,'ob','LineWidth',1),hold on,grid,xlabel('Quantidade de neurÃ´nios'),ylabel('Quantidade de Ã©pocas por treinamento.')
+subplot(1,2,2),plot(vetor_neuronios(:,1),mean(vetor_epocas,2),'*r','LineWidth',7),hold on,grid,xlabel('Quantidade de neurÃ´nios'),ylabel('MÃ©dia da quantidade de Ã©pocas por treinamento.')
 %%
 clc
-fprintf(1,'Tempo total de simulação (minutos): %1.2f \n', tempo_segundos/60)
-fprintf(1,'Tempo relativo de simulação (minutos/topologia): %1.2f \n', (tempo_segundos/60)/(numero_maximo_neuronios-numero_minimo_neuronios+1))
-fprintf(1,'Tempo relativo de simulação (segundos/teste): %1.3f \n', (tempo_segundos)/(numero_maximo_testes*(numero_maximo_neuronios-numero_minimo_neuronios+1)))
+fprintf(1,'Tempo total de simulaÃ§Ã£o (minutos): %1.2f \n', tempo_segundos/60)
+fprintf(1,'Tempo relativo de simulaÃ§Ã£o (minutos/topologia): %1.2f \n', (tempo_segundos/60)/(numero_maximo_neuronios-numero_minimo_neuronios+1))
+fprintf(1,'Tempo relativo de simulaÃ§Ã£o (segundos/teste): %1.3f \n', (tempo_segundos)/(numero_maximo_testes*(numero_maximo_neuronios-numero_minimo_neuronios+1)))
